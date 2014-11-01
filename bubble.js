@@ -1,3 +1,24 @@
+/**
+ * A JQuery widget for showing context-sensitive information for any form element in a popup bubble (aka tooltip).
+ * 
+ * Bubbles can be attached to any element and are automatically positioned to account for target element position 
+ * on the page and page scroll such that they will always be visible on the page.  Bubbles will be positioned 
+ * above/right, above/left, bottom/left, or bottom/right of the target using callout arrows to point to the target.
+ * Each bubble contains a title and content, where content can be any HTML markup.  Hover over an element and the 
+ * bubble appears immediately or after a configureable delay.  Move off the target or bubble and the bubble disappears 
+ * immediately or after a configureable delay.
+ * 
+ * Bubble markup containing title and content can be sent with the page or created automatically in the browser.
+ *
+ * @name bubble
+ * @function
+ * @namespace bubble
+ * @property {Object} props Key-Value pairs of properties.
+ * @property {string} props.title The bubble title
+ * @property {string} props.content The bubble content, can include HTML markup.
+ * @property {string} props.ajax  URL to retrieve title and content in JSON format. This would be used
+ *                                instead of the title and content attributes.
+ */
 (function ($) {
 
     // We may be dealing with 2 unique bubble instances at any time.
@@ -10,11 +31,24 @@
 
     var options;
 
-    // Maximum percentage of the width of the bubble header that
-    // the title can consume.  This should be a themeable parameter
-    // that matches the default width specified in the stylesheet for "BubbleTitle".
+    /**
+     * Maximum percentage of the width of the bubble header that
+     * the title can consume.  This should be a themeable parameter
+     * that matches the default width specified in the stylesheet for "BubbleTitle".
+     * @constant {number}
+     * @default 75
+     * @memberof bubble
+     * @private
+     */
     var BUBBLE_TITLE_WIDTH = 75;
 
+    /**
+     * The html template for the bubble widget.
+     * @constant {string}
+     * @memberof bubble
+     * @private
+     * @default
+     */
     var TEMPLATE = '\
 <div class="BubbleDiv" style="display:none">\n\
   <div class="BubbleShadow">\n\
@@ -104,10 +138,15 @@
     /****** Bubble class ******/
 
     /**
-     * Bubble class constructor.
+     * Backing class for the bubble plugin.
      *
+     * @namespace Bubble
+     * @function Bubble
+     * @class
+     * @constructor
      * @param id       ID of the bubble to start
      * @param evt      event associated with the creation of this bubble.
+     * @private
      */
     function Bubble(id, evt) {
         this.id = id;
@@ -173,6 +212,12 @@
 
     /**
      * Start bubble
+     *
+     * @function
+     * @memberof Bubble
+     * @this Bubble
+     * @instance
+     * @private
      */
     function start() {
     
@@ -338,6 +383,11 @@
      * it may have been posted there.  Otherwise if no
      * event is available, then force an unconditional stop.
      *
+     * @function
+     * @memberof Bubble
+     * @this Bubble
+     * @instance
+     * @private
      * @param evt  event associated with stopping the bubble.
      */
     function stop(evt) {
@@ -402,6 +452,10 @@
     /**
      * Initialize a bubble to start after a specified period of time.
      *
+     * @function
+     * @memberof bubble
+     * @static
+     * @private
      * @param id       ID of the bubble to start
      * @param evt      event that triggered this handler
      */
@@ -437,6 +491,10 @@
      * is "softly" cancelled only upon a mouseout event, otherwise
      * it too is stopped unconditionally.
      *
+     * @function
+     * @memberof bubble
+     * @static
+     * @private
      * @param evt      event that triggered this handler
      */
     function cancelBubble(evt) {
@@ -469,7 +527,10 @@
     /**
      * If a new bubble is pending, start it.  If another bubble already
      * started, stop it.
-     * THIS FUNCTION IS NOT A PUBLIC INTERFACE!
+     * @function
+     * @memberof bubble
+     * @static
+     * @private
      */
     function startBubble() {
     
@@ -500,7 +561,10 @@
     
     /**
      * Stop the active bubble.
-     * THIS FUNCTION IS NOT A PUBLIC INTERFACE!
+     * @function
+     * @memberof bubble
+     * @static
+     * @private
      *
      * @param evt  event associated with stopping the bubble, or null.
      */
