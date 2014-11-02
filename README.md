@@ -7,7 +7,7 @@ Bubbles can be attached to any element and are automatically positioned to accou
 
 Bubble markup containing title and content can be sent with the page or created automatically in the browser.
 
-The sample index.html shows simple target elements that can be dragged anywhere on the page to observe the behavior of the bubble positioning.
+The sample index.html shows simple target elements that can be dragged anywhere on the page to observe the behavior of the bubble positioning.  Go <a href="http://byennaco.github.io/jquery-bubble/">here</a> to see the running demo.  Go <a href="http://byennaco.github.io/jquery-bubble/doc/bubble.html">here</a> for documentation.
 
 Due to a problem with positioning the top callout arrows on IE8 and Opera, a client-side browser sniffer is included.  This can be removed from the head tag if you don't care about these browsers.
 
