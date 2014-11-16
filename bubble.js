@@ -175,15 +175,18 @@
                     $(titleEditorSelector).remove();
                     $(titleSelector).css({"display": "block"});
 
-                    // Immediate reactivate the bubble with the updated content.
-                    var bubbleDOM = $("#" + bubbleID).get(0);
-                    var event = new Object();
-                    event.type = "click";
-                    event.target = bubbleDOM.payload.target;
-                    cancelBubble(event);
+                    // Immediately reactivate the bubble with the updated content.
+                    // We do this by triggering a click event on the target to cancel the bubble,
+                    // followed by a mouseenter on that target to initialize it again.
+                    // Note the customization to override the delay in displaying the bubble.
+                    var bubble = $("#" + bubbleID);
+                    var payload = bubble.data("payload");
+                    var e = jQuery.Event("click");
+                    $(payload.target).trigger(e);
                     isCancelBlocked = true;
-                    event.type = "mousenter";
-                    initBubble(bubbleID, event, 0);
+                    e = jQuery.Event("mouseenter");
+                    e.openDelay = 0;
+                    $(payload.target).trigger(e);
                 }
             });
 
@@ -237,15 +240,16 @@
         this.target.absLeft = offset.left;
         this.target.absTop = offset.top;
     
-        // Get the DOM element for the bubble.
-        var bubble = $("#" + this.id).get(0);
+        // Get the JQuery object for the bubble.
+        var bubble = $("#" + this.id);
     
         // The 1st instance of this bubble element will not have the "payload" property
         // set.  In this case, we want to grab any positioning information that may have
         // been specified as part of the style attribute.  Specific positioning can be
         // used to override the default positioning of the bubble.
         //
-        if (bubble.payload == null) {
+        var payload = bubble.data("payload");
+        if (payload == null) {
             var t = parseInt($("#" + this.id).css("top"));
             var l = parseInt($("#" + this.id).css("left"));
             if ($.isNumeric(t)) {
@@ -256,30 +260,28 @@
             }
         } else {
             // Old payload exists, so migrate positioning info from it to this object.
-            this.top = bubble.payload.top;
-            this.left = bubble.payload.left;
+            this.top = payload.top;
+            this.left = payload.left;
         }
     
-        // Extend the DOM object to account for our Bubble object payload, so
-        // we can register event handlers for the payload.
-        bubble.payload = this;
+        // Attach our Bubble object to the JQuery object as the payload data.
+        bubble.data("payload", this);
     
-        bubble.onmouseover = function() {
-            // Treat same as mouseover on target.  If bubble scheduled to be stopped, cancel
-            // the scheduled stop.
-            if (this.payload.timeoutID != null)
-                clearTimeout(this.payload.timeoutID);
-            this.payload.cancelled = false;
-            this.payload.timeoutID = null;
-        }
-        bubble.onmouseout = function() {
-            // Create our own event and override target to be the target
-            // object associated with this bubble.
-            var event = new Object();
-            event.type = "mouseout";
-            event.target = this.payload.target;
-            cancelBubble(event);
-        }
+        bubble.mouseover(function(event) {
+            // If bubble scheduled to be stopped, cancel the scheduled stop.
+            var payload = $(this).data("payload");
+            if (payload.timeoutID != null)
+                clearTimeout(payload.timeoutID);
+            payload.cancelled = false;
+            payload.timeoutID = null;
+        });
+
+        bubble.mouseout(function(event) {
+            // Treat same a mouseout on target.
+            var payload = $(this).data("payload");
+            var e = jQuery.Event("mouseout");
+            $(payload.target).trigger(e);
+        });
 
         // Display the Edit button icon if bubble is edittable.
         var editable = $('#' + id).data("editable")
@@ -527,11 +529,12 @@
      * @private
      * @param id       ID of the bubble to start
      * @param evt      event that triggered this handler
-     * @param delay    number of millisecond to delay start of the bubble.
+     *                 The Event may be extended with the 'openDelay' attribute,
+     *                 the number of milliseconds to delay start of the bubble.
      *                 If not specified, the delay is as specified in the plugin options
      */
     function initBubble(id, evt, delay) {
-    
+
         // Do not initialize a bubble that is already pending.
         if ((pendingBubble != null) && (pendingBubble.id == id)) {
             return;
@@ -550,7 +553,7 @@
         }
     
         pendingBubble = new Bubble(id, evt);
-        pendingBubble.timeoutID = setTimeout(startBubble, (delay != null) ? delay : options.openDelay);
+        pendingBubble.timeoutID = setTimeout(startBubble, (evt.openDelay != null) ? evt.openDelay : options.openDelay);
     
     } // initBubble
     
