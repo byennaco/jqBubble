@@ -17,6 +17,12 @@
    Bubble position and info for that box.  To dismiss the bubble, click anywhere outside the
    bubble or click the bubble's dismiss icon.  The bubble will auto-dismiss 2 seconds
    after moving the mouse off the bubble or the associated target.</p>
+<p>Bubbles that have the "editable" option set to true will show an edit icon in the header.
+   When clicked, the bubble title and content will each display in a textarea for editting.
+   Clicking the icon when in edit mode will returns the bubble to normal mode with the changes
+   applied.  Changes from edit mode can be cancelled by dismissing the bubble via the dismiss
+   icon or clicking anywhere outside the bubble.  The bubble title is text-only, the content
+   can be HTML markup.</p>
 
 <!-- This example shows a bubble that is specifically positioned and overrides the default
      policy on positioning.  Since the bubble container is a child of the target, it can be
@@ -32,6 +38,7 @@
         <div class="BubbleHeader">
           <div class="BubbleTitle">Specific Positioning</div>
           <div class="BubbleCloseBtn"></div>
+          <div class="BubbleEditBtn"></div>
         </div>
         <div class="BubbleContent">
             This bubble is specifically positioned via "style="top:55px; left:-5px; position:relative;"
@@ -62,6 +69,7 @@
       <div class="BubbleHeader">
         <div class="BubbleTitle">Bubble repositions to opposite side on browser boundaries</div>
         <div class="BubbleCloseBtn"></div>
+        <div class="BubbleEditBtn"></div>
       </div>
       <div class="BubbleContent">
         This bubble shows the default positioning of the bubble.<br/><br/>
@@ -98,6 +106,7 @@
       <div class="BubbleHeader">
         <div class="BubbleTitle">Relatively-positioned Target</div>
         <div class="BubbleCloseBtn"></div>
+        <div class="BubbleEditBtn"></div>
       </div>
       <div class="BubbleContent">
         This bubble tests correct placement of a bubble for a target that itself is positioned

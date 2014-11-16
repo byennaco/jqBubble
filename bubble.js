@@ -9,6 +9,7 @@
  * immediately or after a configureable delay.
  * 
  * Bubble markup containing title and content can be sent with the page or created automatically in the browser.
+ * Title and content can be editted directly inside the bubble via the "editable" option.
  *
  * @name bubble
  * @function
@@ -16,6 +17,8 @@
  * @property {Object} props Key-Value pairs of properties.
  * @property {string} props.title The bubble title
  * @property {string} props.content The bubble content, can include HTML markup.
+ * @property {boolean} props.editable When set to true, the Edit icon is available for displaying the bubble
+ *                                    in edit mode so title and content can be changed.
  * @property {string} props.ajax  URL to retrieve title and content in JSON format. This would be used
  *                                instead of the title and content attributes.
  */
@@ -28,6 +31,11 @@
     //
     var pendingBubble = null;
     var activeBubble = null;
+
+    // In general, a pending bubble can always be cancelled.  But when the pending bubble
+    // is the result of an immediate bubble reactivation, then we want to block events that
+    // would otherwise cause the bubble to be cancelled.
+    var isCancelBlocked = false;
 
     var options;
 
@@ -56,6 +64,7 @@
       <div class="BubbleHeader">\n\
         <div class="BubbleTitle"></div>\n\
         <div class="BubbleCloseBtn"></div>\n\
+        <div class="BubbleEditBtn"></div>\n\
       </div>\n\
       <div class="BubbleContent">\n\
       </div>\n\
@@ -73,11 +82,17 @@
 
         options = $.extend({
             openDelay: 500,
-            closeDelay: 2000
+            closeDelay: 2000,
+            editable: "false"
         }, opts);
 
-        $(document, '.BubbleCloseBtn').click(function(event) {
-            cancelBubble(event);
+        // Listen for clicks on the document and check to see if the event target
+        // is .BubbleDiv or has .BubbleDiv as a parent.  If it is not, then the click
+        // originated from outside the bubble and we can cancel the bubble.
+        $(document).click(function(event) {
+            if (!$(event.target).closest('.BubbleDiv').length) {
+                cancelBubble(event);
+            }
         });
 
         return this.each(function() {
@@ -108,7 +123,6 @@
                     $('#' + bubbleID + ' .BubbleTitle').html(options.title);
                     $('#' + bubbleID + ' .BubbleContent').html(options.content);
                 }
-                //$(this).attr("data-bubbleid", bubbleID);
                 $(this).data("bubbleid", bubbleID);
 
                 // Clear options that are specific per bubble instance.
@@ -116,6 +130,62 @@
                 options.content = null;
                 options.ajax = null;
             }
+
+            // Add options for this bubble.
+            $('#' + bubbleID).data("editable", options.editable);
+
+            $('#' + bubbleID + ' .BubbleCloseBtn').click(function(event) {
+                cancelBubble(event);
+            });
+
+            $('#' + bubbleID + ' .BubbleEditBtn').click(function(event) {
+                var contentSelector = '#' + bubbleID + ' .BubbleContent';
+                var contentEditorSelector = '#' + bubbleID + ' .BubbleContentEditor';
+                var contentTextarea = $(contentEditorSelector + ' textarea');
+                var titleSelector = '#' + bubbleID + ' .BubbleTitle';
+                var titleEditorSelector = '#' + bubbleID + ' .BubbleTitleEditor';
+                var titleTextarea = $(titleEditorSelector + ' textarea');
+                var content = $(contentSelector).html();
+                var title = $(titleSelector).text();
+                if (contentTextarea.length == 0) {
+                    // Move the bubble content into an editable textarea inside its own parent div.
+                    $("<div></div>").addClass("BubbleContentEditor").insertAfter(contentSelector);
+                    $("<textarea></textarea>").val($.trim(content)).appendTo(contentEditorSelector)
+                        .height($(contentSelector).height() + 20);
+
+                    // Move the bubble title into an editable textarea inside its own parent div.
+                    $("<div></div>").addClass("BubbleTitleEditor").insertAfter(titleSelector);
+                    $("<textarea></textarea>").val($.trim(title)).appendTo(titleEditorSelector)
+                        .width($(titleSelector).width())
+                        .height($(titleSelector).height());
+
+                    $(contentSelector).css({"display": "none"});
+                    $(titleSelector).css({"display": "none"});
+                    setArrowPosition(bubbleID);
+                } else {
+                    // Move the editted content from the textarea to bubble content and remove the editor.
+                    var content = contentTextarea.val();
+                    $(contentSelector).html(content);
+                    $(contentEditorSelector).remove();
+                    $(contentSelector).css({"display": "block"});
+
+                    // Move the editted title from the textarea to bubble title and remove the editor.
+                    var title = titleTextarea.val();
+                    $(titleSelector).text(title);
+                    $(titleEditorSelector).remove();
+                    $(titleSelector).css({"display": "block"});
+
+                    // Immediate reactivate the bubble with the updated content.
+                    var bubbleDOM = $("#" + bubbleID).get(0);
+                    var event = new Object();
+                    event.type = "click";
+                    event.target = bubbleDOM.payload.target;
+                    cancelBubble(event);
+                    isCancelBlocked = true;
+                    event.type = "mousenter";
+                    initBubble(bubbleID, event, 0);
+                }
+            });
 
             $(this)
                 .addClass("ui-bubbleable")
@@ -138,7 +208,7 @@
     /****** Bubble class ******/
 
     /**
-     * Backing class for the bubble plugin.
+     * Backing class for pending and active bubbles.
      *
      * @namespace Bubble
      * @function Bubble
@@ -205,7 +275,15 @@
             event.target = this.payload.target;
             cancelBubble(event);
         }
-    
+
+        // Display the Edit button icon if bubble is edittable.
+        var editable = $('#' + id).data("editable")
+        if (editable == true) {
+            $("#" + id + ".BubbleDiv .BubbleEditBtn").css({"display": "block"});
+        } else {
+            $("#" + id + ".BubbleDiv .BubbleEditBtn").css({"display": "none"});
+        }
+
         // Initialize the BubbleTitle width as a percentage of the bubble header.
         $("#" + bubble.id + ".BubbleDiv .BubbleTitle").width(BUBBLE_TITLE_WIDTH + "%");
     };
@@ -350,21 +428,7 @@
             // If rendering a callout arrow, set it's position relative to the bubble.
             if (this.arrow != null) {
                 $(this.arrow).css({"display": "block", "visibility": "visible"});
-    
-                if ((this.arrow == topLeftArrow) || (this.arrow == topRightArrow)) {
-                    // Top position for top arrows is a relative vertical shift by an
-                    // amount almost equal to the bubble height, but with an adjustment.
-                    // For some reason, IE8 and Opera require custom positioning of the top arrows.
-                    // Don't know which "support" item to check for so we check the browser.
-                    var adjustment = -2;
-                    if (typeof(WebBrowser) != "undefined") {
-                        if ((WebBrowser.isIE() && (WebBrowser.getVersion() == 8)) 
-                             || WebBrowser.isOpera()) {
-                            adjustment = 3;
-                        }
-                    }
-                    $(this.arrow).css("top",  -(bubble.height() + adjustment) + "px");
-                }
+                setArrowPosition(this.id);
             }
         }
     
@@ -458,8 +522,10 @@
      * @private
      * @param id       ID of the bubble to start
      * @param evt      event that triggered this handler
+     * @param delay    number of millisecond to delay start of the bubble.
+     *                 If not specified, the delay is as specified in the plugin options
      */
-    function initBubble(id, evt) {
+    function initBubble(id, evt, delay) {
     
         // Do not initialize a bubble that is already pending.
         if ((pendingBubble != null) && (pendingBubble.id == id)) {
@@ -479,7 +545,7 @@
         }
     
         pendingBubble = new Bubble(id, evt);
-        pendingBubble.timeoutID = setTimeout(startBubble, options.openDelay);
+        pendingBubble.timeoutID = setTimeout(startBubble, (delay != null) ? delay : options.openDelay);
     
     } // initBubble
     
@@ -498,6 +564,10 @@
      * @param evt      event that triggered this handler
      */
     function cancelBubble(evt) {
+
+        if (isCancelBlocked == true) {
+            return;
+        }
     
         // Unconditionally stop pending bubble.
         if (pendingBubble != null) {
@@ -517,6 +587,20 @@
                     activeBubble.cancelled = true;
                 }
             } else {
+                // If in edit mode, remove the editors and restore the content and title.
+                var contentSelector = '#' + activeBubble.id + ' .BubbleContent';
+                var contentEditorSelector = '#' + activeBubble.id + ' .BubbleContentEditor';
+                var contentTextarea = $(contentEditorSelector + ' textarea');
+                var titleSelector = '#' + activeBubble.id + ' .BubbleTitle';
+                var titleEditorSelector = '#' + activeBubble.id + ' .BubbleTitleEditor';
+                var titleTextarea = $(titleEditorSelector + ' textarea');
+                if (contentTextarea.length != 0) {
+                    $(contentEditorSelector).remove();
+                    $(contentSelector).css({"display": "block"});
+                    $(titleEditorSelector).remove();
+                    $(titleSelector).css({"display": "block"});
+                }
+
                 stopBubble(evt);
             }
         }
@@ -555,6 +639,7 @@
         activeBubble = pendingBubble;
         pendingBubble = null;
         activeBubble.start();
+        isCancelBlocked = false;
     
     } // startBubble
     
@@ -578,5 +663,41 @@
             activeBubble = null;
     
     } // stopBubble
+
+    /**
+     * Set the positions of the callout arrow for the specified bubble.
+     * @function
+     * @memberof bubble
+     * @static
+     * @private
+     *
+     * @param bubbleID  the ID of the bubble
+     */
+    function setArrowPosition(bubbleID) {
+        // Get a handle to the top arrow if it is displayed.
+        var topLeftArrow = $("#" + bubbleID + ".BubbleDiv .topLeftArrow");
+        var topRightArrow = $("#" + bubbleID + ".BubbleDiv .topRightArrow");
+        var isTopLeftArrowVisible = (topLeftArrow.css("display") == "block") ? true : false;
+        var isTopRightArrowVisible = (topRightArrow.css("display") == "block") ? true : false;;
+        var topArrow = null;
+        if (isTopLeftArrowVisible == true) { topArrow = topLeftArrow; }
+        if (isTopRightArrowVisible == true) { topArrow = topRightArrow; }
+
+        if (topArrow != null) {
+            // Top position for top arrows is a relative vertical shift by an
+            // amount almost equal to the bubble height, but with an adjustment.
+            // For some reason, IE8 and Opera require custom positioning of the top arrows.
+            // Don't know which "support" item to check for so we check the browser.
+            var adjustment = -2;
+            if (typeof(WebBrowser) != "undefined") {
+                if ((WebBrowser.isIE() && (WebBrowser.getVersion() == 8)) 
+                     || WebBrowser.isOpera()) {
+                    adjustment = 3;
+                }
+            }
+            var bubble = $("#" + bubbleID);
+            topArrow.css("top",  -(bubble.height() + adjustment) + "px");
+        }
+    }
 
 })(jQuery);

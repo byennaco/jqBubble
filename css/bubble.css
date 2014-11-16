@@ -88,6 +88,12 @@
     font-weight: bold;
 }
 
+.BubbleTitleEditor {
+    float: left;
+    width: 75%;
+    padding: 0;
+}
+
 .BubbleCloseBtn, .NoBubbleCloseBtn {
     float: right;
     margin-top: 4px;
@@ -97,8 +103,21 @@
     height: 14px;
 }
 
+.BubbleEditBtn {
+    float: right;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    margin-right: 4px;
+    width: 15px;
+    height: 15px;
+}
+
 .BubbleCloseBtn {
     background-image: url(../images/bubble/dismiss_icon.png);
+}
+
+.BubbleEditBtn {
+    background-image: url(../images/bubble/edit_icon.png);
 }
 
 .NoBubbleCloseBtn {
@@ -109,4 +128,15 @@
     margin:10px;
     padding:1px;  // in case of no content
     clear: both;
+}
+
+.BubbleContentEditor textarea {
+    resize: none;
+    width: 99%;
+    height: auto;
+}
+
+.BubbleTitleEditor textarea {
+    resize: none;
+    height: auto;
 }
