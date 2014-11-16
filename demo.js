@@ -2,7 +2,7 @@ $(document).ready(function() {
 
     $("#target1, #target2, #target3")
         .draggable()
-        .bubble();
+        .bubble({editable:true});
 
     $("#dynamic")
         .draggable()
@@ -14,7 +14,7 @@ $(document).ready(function() {
     $("#dynamic2")
         .draggable()
         .bubble({
-             ajax: "example.json",
+             ajax: "example.json"
          });
 
 });
