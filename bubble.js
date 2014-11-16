@@ -197,7 +197,12 @@
                 .mouseout(function(event) {
                     cancelBubble(event);})
                 .mousedown(function(event) {
-                    cancelBubble(event);});
+                    // Listen for clicks on the target and check to see if the event target
+                    // is .BubbleDiv or has .BubbleDiv as a parent.  If it is not, then the click
+                    // originated from outside the bubble and we can cancel the bubble.
+                    if (!$(event.target).closest('.BubbleDiv').length) {
+                        cancelBubble(event);
+                    }});
 
             return $(this);
         });
