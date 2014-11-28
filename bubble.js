@@ -24,6 +24,18 @@
  */
 (function ($) {
 
+    /**
+     * The custom event triggered when title or content of an editable bubble has changed.
+     * @constant {string}
+     * @event bubblechanged
+     * @memberof bubble
+     * @property {object} target The target element the bubble is associated with
+     * @property {string} title The updated bubble title
+     * @property {string} content The updated bubble content
+     * @public
+     */
+    var EVENT_BUBBLE_CHANGE = "bubblechanged";
+
     // We may be dealing with 2 unique bubble instances at any time.
     // A pending bubble is one that is on a timer delay before it
     // becomes visible.  An active bubble is one that is visible.
@@ -145,8 +157,17 @@
                 var titleSelector = '#' + bubbleID + ' .BubbleTitle';
                 var titleEditorSelector = '#' + bubbleID + ' .BubbleTitleEditor';
                 var titleTextarea = $(titleEditorSelector + ' textarea');
-                var content = $(contentSelector).html();
-                var title = $(titleSelector).text();
+
+                // Convert content and title html to editable text, removing embedded newlines and replacing <br> tags with newlines.
+                var content = $(contentSelector).html()
+                        .split("\n").join("")
+                        .split("<br/>").join("\n")
+                        .split("<br>").join("\n");
+                var title = $(titleSelector).html()
+                        .split("\n").join("")
+                        .split("<br/>").join("\n")
+                        .split("<br>").join("\n");
+
                 if (contentTextarea.length == 0) {
                     // Move the bubble content into an editable textarea inside its own parent div.
                     $("<div></div>").addClass("BubbleContentEditor").insertAfter(contentSelector);
@@ -163,30 +184,40 @@
                     $(titleSelector).css({"display": "none"});
                     setArrowPosition(bubbleID);
                 } else {
-                    // Move the editted content from the textarea to bubble content and remove the editor.
-                    var content = contentTextarea.val();
-                    $(contentSelector).html(content);
+                    // Move the editted content from the textarea to bubble html content, replacing newlines
+                    // with <br> tags, and remove the editor.
+                    var newContent = contentTextarea.val()
+                        .trim()
+                        .split("\n").join("<br/>");
+                    $(contentSelector).html(newContent);
                     $(contentEditorSelector).remove();
                     $(contentSelector).css({"display": "block"});
 
-                    // Move the editted title from the textarea to bubble title and remove the editor.
-                    var title = titleTextarea.val();
-                    $(titleSelector).text(title);
+                    // Move the editted title from the textarea to bubble html content, replacing newlines
+                    // with <br> tags, and remove the editor.
+                    var newTitle = titleTextarea.val()
+                        .trim()
+                        .split("\n").join("<br/>");
+                    $(titleSelector).html(newTitle);
                     $(titleEditorSelector).remove();
                     $(titleSelector).css({"display": "block"});
 
                     // Immediately reactivate the bubble with the updated content.
-                    // We do this by triggering a click event on the target to cancel the bubble,
+                    // We do this by triggering a click event on the document to cancel the bubble,
+                    // Never trigger a click on the target as that could be handled by the target.
                     // followed by a mouseenter on that target to initialize it again.
                     // Note the customization to override the delay in displaying the bubble.
                     var bubble = $("#" + bubbleID);
                     var payload = bubble.data("payload");
                     var e = jQuery.Event("click");
-                    $(payload.target).trigger(e);
+                    $(document).trigger(e);
                     isCancelBlocked = true;
                     e = jQuery.Event("mouseenter");
                     e.openDelay = 0;
                     $(payload.target).trigger(e);
+
+                    // Fire event to notify the associated target that it's bubble title and/or content has changed.
+                    $(payload.target).trigger(EVENT_BUBBLE_CHANGE, [payload.target, newTitle, newContent]);
                 }
             });
 
