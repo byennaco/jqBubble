@@ -2,7 +2,7 @@ $(document).ready(function() {
 
     $("#target1, #target2, #target3")
         .draggable()
-        .bubble({editable:true});
+        .bubble({ editable:true });
 
     $("#dynamic")
         .draggable()
@@ -16,5 +16,10 @@ $(document).ready(function() {
         .bubble({
              ajax: "example.json"
          });
+
+    // Event handler for bubble change event
+    $(document).on("bubblechanged", ".ui-bubbleable", function(event, target, title, content) {
+        // Do something with updated title and content for bubble associated with the specified target.
+    });
 
 });
